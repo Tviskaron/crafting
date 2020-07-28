@@ -1,0 +1,26 @@
+docker-run:
+  image: "python:slim"
+  command: 'python3 -c print(\"Hello\ world.\ Craft\ Here!\",end=\"\")'
+  tty: True
+  environment:
+#    - "WANDB_ENTITY=cds"
+#    - "WANDB_API_KEY=7baa0702845fb915ec4de1ad98b6eca3c4bc64db"
+    - "OMP_NUM_THREADS=1"
+    - "MKL_NUM_THREADS=1"
+    - "NVIDIA_VISIBLE_DEVICES=all"
+#code:
+#  folder: "/home/tv-home/Desktop/Flatland/FlatlandResearchBaselines"
+
+#host_config:
+#  binds:
+#    /home/tv-home/Desktop/Flatland/flatland-out:
+#      bind: "/tmp/flatland-out"
+#      mode: 'ro'
+#  runtime: nvidia
+info:
+  container_name:
+    parts:
+      - user
+      - minecraft
+    delimiter: '.'  
+
