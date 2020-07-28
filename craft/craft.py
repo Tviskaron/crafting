@@ -28,7 +28,7 @@ def run_container(config):
             raise IndexError(f"Can't create unique name in {attempts} attempts")
 
         if 'working_dir' not in config['docker-run']:
-            config['docker-run'][' working_dir'] = "/" + path_to_code.name
+            config['docker-run']['working_dir'] = "/" + path_to_code.name
 
     for image in client.images.list():
         if config["docker-run"]['image'] in image.tags:
