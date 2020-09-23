@@ -9,7 +9,7 @@ import docker
 import yaml
 from docker import APIClient
 
-from utils import create_name
+from .utils import create_name
 
 
 def run_container(config: dict, name_attempts: int = 10) -> None:
