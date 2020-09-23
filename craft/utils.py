@@ -39,7 +39,7 @@ def create_name(container_name_config: dict) -> str:
     for part in container_name_config['parts']:
         if part not in parts_of_name:
             names = ", ".join(parts_of_name.keys())
-            raise KeyError(f'"{part}" is not a part of name. Existing parts are: {names}')
+            raise KeyError('"{}" is not a part of name. Existing parts are: {}'.format(part, names))
         else:
             result.append(parts_of_name[part]())
     return container_name_config['delimiter'].join(result)
