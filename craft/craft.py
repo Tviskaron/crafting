@@ -9,23 +9,27 @@ import docker
 import yaml
 from docker import APIClient
 
-from craft.utils import create_name
+from utils import create_name
 
 
-def run_container(config):
+def run_container(config: dict, name_attempts: int = 10) -> None:
+    """
+    creating and running docker container with given config
+    also listening the container logs.
+    :param config:
+    :param name_attempts: number of attempts to create docker container with unique name
+    :return:
+    """
     client = docker.from_env()
     if config.get('code', None):
         path_to_code = pathlib.Path(config['code'].get('folder', None))
 
-        attempts = 10
-        for _ in range(attempts):
+        for _ in range(name_attempts):
             container_name = create_name(config['info']['container_name'])
             if container_name in map(lambda x: x.name, client.containers.list()):
                 continue
             config['docker-run']['name'] = container_name
             break
-        else:
-            raise IndexError(f"Can't create unique name in {attempts} attempts")
 
         if 'working_dir' not in config['docker-run']:
             config['docker-run']['working_dir'] = "/" + path_to_code.name
@@ -34,7 +38,6 @@ def run_container(config):
         if config["docker-run"]['image'] in image.tags:
             break
     else:
-        print(f"Unable to find image {config['docker-run']['image']} locally. Pulling from dockerhub.")
         client.images.pull(config["docker-run"]['image'])
 
     host_config = APIClient().create_host_config(**config.get('host_config', {}))
@@ -46,14 +49,14 @@ def run_container(config):
         path_to_code = pathlib.Path(config['code'].get('folder', None))
         with tempfile.TemporaryFile() as temp:
             file = tarfile.open(fileobj=temp, mode="w")
-            file.add(path_to_code, arcname=path_to_code.name + "/", recursive=True)
+            file.add(str(path_to_code), arcname=path_to_code.name + "/", recursive=True)
             file.close()
             temp.seek(0)
             with temp as file:
                 container.put_archive(data=file, path='/')
     container.start()
     container.logs()
-    os.system(f"docker logs -f {container.name}")
+    os.system("docker logs -f " + container.name)
     # os.system(f"docker exec  -ti {container.name} bash")
 
 
@@ -69,7 +72,7 @@ def main():
         run_container(config=config)
     elif args.mode == 'create':
         if pathlib.Path(args.config).exists():
-            raise FileExistsError(f"{args.config} already exists")
+            raise FileExistsError("already exists")
         src = str(pathlib.Path(__file__).parents[0] / "basic_config.yaml")
         shutil.copyfile(src=src, dst=args.config)
 

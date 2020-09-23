@@ -4,7 +4,13 @@ import pathlib
 from random import sample
 
 
-def get_minecraft_name():
+def get_minecraft_name() -> str:
+    """
+    Creates an pair of adjective and noun from minecraft domain in CamelCase format.
+    The nouns and adjectives come from "minecraft_names.json" file.
+    Some examples: GlassSunflower, EmptyCube, GoldBluet.
+    :return:
+    """
     try:
         with open(str(pathlib.Path(__file__).parents[0] / "minecraft_names.json"), "r") as items_file:
             items = json.load(items_file)
@@ -16,7 +22,15 @@ def get_minecraft_name():
     return result
 
 
-def create_name(container_name_config):
+def create_name(container_name_config: dict) -> str:
+    """
+    Creates full name for docker container from existing parts (see parts_of_name).
+    Example:
+        container_name_config: {"delimiter": '.', "parts": ['user', 'minecraft']}
+        return:
+    :param container_name_config:
+    :return: user.SmoothClay
+    """
     result = []
     parts_of_name = {
         'user': lambda: getpass.getuser(),
