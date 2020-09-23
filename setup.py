@@ -39,7 +39,7 @@ setup(
     long_description_content_type='TODO',
     url='https://github.com/Tviskaron/craft',
     packages=find_packages(),
-    py_modules=['craft'],
+    py_modules=['craft', 'utils'],
     include_package_data=True,
     package_data={'': ['minecraft_names.json', 'basic_config.yaml']},
     install_requires=[
