@@ -1,5 +1,7 @@
-## Install 
+# Crafting tool for your ML/RL experiments with Docker
 
-```pip install git+ssh://git@github.com/Tviskaron/craft.git```
+## Installation 
 
-```pip install git+https://github.com/Tviskaron/craft.git```
+Just install from PyPI:
+
+```pip install crafting```
