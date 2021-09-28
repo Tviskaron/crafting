@@ -1,0 +1,18 @@
+docker-run:
+  image: "python:slim"
+  command: 'python3 -c print(\"Hello\ world.\ Craft\ Here!\",end=\"\")'
+  tty: True
+  environment:
+    - "OMP_NUM_THREADS=1"
+    - "MKL_NUM_THREADS=1"
+    - "NVIDIA_VISIBLE_DEVICES=all"
+
+host_config:
+  network_mode: host
+info:
+  container_name:
+    parts:
+      - user
+      - minecraft
+    delimiter: '.'  
+

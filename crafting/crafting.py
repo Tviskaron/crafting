@@ -8,7 +8,9 @@ import tempfile
 import docker
 import yaml
 from docker import APIClient
+from docker.models.containers import Container
 
+# from utils import create_name
 from .utils import create_name
 
 
@@ -21,6 +23,7 @@ def run_container(config: dict, name_attempts: int = 10) -> None:
     :return:
     """
     client = docker.from_env()
+
     if config.get('code', None):
         path_to_code = pathlib.Path(config['code'].get('folder', None))
 
@@ -44,7 +47,7 @@ def run_container(config: dict, name_attempts: int = 10) -> None:
     container_id = client.api.create_container(**config['docker-run'],
                                                host_config=host_config
                                                )
-    container = client.containers.get(container_id)
+    container: Container = client.containers.get(container_id)
     if config.get('code', None):
         path_to_code = pathlib.Path(config['code'].get('folder', None))
         with tempfile.TemporaryFile() as temp:

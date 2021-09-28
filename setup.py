@@ -1,4 +1,3 @@
- 
 import codecs
 import os
 import re
@@ -32,28 +31,22 @@ def find_version(*file_paths):
 
 
 setup(
-    name='craft',
-    version=find_version("craft", "__init__.py"),
-    description='TODO',
+    name='crafting',
+    author='Alexey Skrynnik',
+    license='MIT',
+    version=find_version("crafting", "__init__.py"),
+    description='Tool to run your DL/RL experiments with Docker',
     long_description=long_description,
-    long_description_content_type='TODO',
-    url='https://github.com/Tviskaron/craft',
-    packages=find_packages(),
-    py_modules=['craft', 'utils'],
-    include_package_data=True,
-    package_data={'': ['minecraft_names.json', 'basic_config.yaml']},
+    long_description_content_type='text/markdown',
+    url='https://github.com/Tviskaron/crafting',
     install_requires=[
         "PyYAML",
         "docker"
     ],
-    classifiers=[
-        'Intended Audience :: Teachers, Students',
-        'Operating System :: OS Independent',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
-    ],
-    entry_points={"console_scripts": ["craft=craft.craft:main"]},
+    package_data={'crafting': ['minecraft_names.json', 'basic_config.yaml']},
+    include_package_data=True,
+    package_dir={'': './'},
+    packages=find_packages(where='./', include='crafting*'),
+        entry_points={"console_scripts": ["crafting=crafting.crafting:main"]},
+    python_requires='>=3.6',
 )
