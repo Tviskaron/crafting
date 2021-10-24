@@ -2,65 +2,62 @@ import argparse
 import os
 import pathlib
 import shutil
-import tarfile
 import tempfile
 
 import docker
 import yaml
+
 from docker import APIClient
 from docker.models.containers import Container
+from docker.types import Mount
 
-# from utils import create_name
-from .utils import create_name
+import config_validation
+from config_validation import Cfg, Code, MountVolume
+from utils import PatchedTarfile
 
 
-def run_container(config: dict, name_attempts: int = 10) -> None:
-    """
-    creating and running docker container with given config
-    also listening the container logs.
-    :param config:
-    :param name_attempts: number of attempts to create docker container with unique name
-    :return:
-    """
+def run_container(cfg: Cfg = Cfg()) -> None:
     client = docker.from_env()
 
-    if config.get('code', None):
-        path_to_code = pathlib.Path(config['code'].get('folder', None))
-
-        for _ in range(name_attempts):
-            container_name = create_name(config['info']['container_name'])
-            if container_name in map(lambda x: x.name, client.containers.list()):
-                continue
-            config['docker-run']['name'] = container_name
-            break
-
-        if 'working_dir' not in config['docker-run']:
-            config['docker-run']['working_dir'] = "/" + path_to_code.name
-
     for image in client.images.list():
-        if config["docker-run"]['image'] in image.tags:
+        if cfg.container.image in image.tags:
             break
     else:
-        client.images.pull(config["docker-run"]['image'])
+        print('Pulling image:', cfg.container.image)
+        client.images.pull(cfg.container.image)
+    if not cfg.container.working_dir:
+        cfg.container.working_dir = str(pathlib.Path("/") / pathlib.Path(cfg.code.folder).absolute().name)
 
-    host_config = APIClient().create_host_config(**config.get('host_config', {}))
-    container_id = client.api.create_container(**config['docker-run'],
-                                               host_config=host_config
-                                               )
+    for path in cfg.code.volume_attach:
+        target = pathlib.Path(cfg.container.working_dir) / path
+        source = pathlib.Path(path).absolute()
+        mount = MountVolume(target=str(target), source=str(source), read_only=True, type='bind')
+        cfg.host_config.mounts.append(Mount(**mount.dict()))
+
+    host_config = APIClient().create_host_config(**cfg.host_config.dict())
+    container_id = client.api.create_container(**cfg.container.dict(), host_config=host_config)
+
     container: Container = client.containers.get(container_id)
-    if config.get('code', None):
-        path_to_code = pathlib.Path(config['code'].get('folder', None))
+
+    cfg.update_forward_refs()
+    if cfg.code.folder:
+        path_to_code = pathlib.Path(cfg.code.folder)
         with tempfile.TemporaryFile() as temp:
-            file = tarfile.open(fileobj=temp, mode="w")
-            file.add(str(path_to_code), arcname=path_to_code.name + "/", recursive=True)
-            file.close()
+            # file = tarfile.open(fileobj=temp, mode="w")
+            path = PatchedTarfile.open(fileobj=temp, mode="w")
+
+            ignore = list(map(os.path.abspath, cfg.code.volume_attach))
+            path.add(str(path_to_code), arcname=path_to_code.name + "/", recursive=True, ignore=ignore)
+            path.close()
             temp.seek(0)
-            with temp as file:
-                container.put_archive(data=file, path='/')
+            with temp as path:
+                container.put_archive(data=path, path=cfg.container.working_dir)
+
     container.start()
-    container.logs()
-    os.system("docker logs -f " + container.name)
-    # os.system(f"docker exec  -ti {container.name} bash")
+    if cfg.container.command == 'bash':
+        os.system(f"docker attach  {container.id}")
+    else:
+        os.system("docker logs -f " + container.name)
 
 
 def main():
@@ -70,14 +67,13 @@ def main():
     args = parser.parse_args()
     if args.mode == 'run':
         with open(args.config, "r") as config_file:
-            config = yaml.load(config_file, yaml.FullLoader)
-
-        run_container(config=config)
-    elif args.mode == 'create':
-        if pathlib.Path(args.config).exists():
-            raise FileExistsError("already exists")
-        src = str(pathlib.Path(__file__).parents[0] / "basic_config.yaml")
-        shutil.copyfile(src=src, dst=args.config)
+            config = yaml.safe_load(config_file)
+        run_container(cfg=Cfg(**config))
+    # elif args.mode == 'create':
+    #     if pathlib.Path(args.config).exists():
+    #         raise FileExistsError("already exists")
+    #     src = str(pathlib.Path(__file__).parents[0] / "basic_config.yaml")
+    #     shutil.copyfile(src=src, dst=args.config)
 
 
 if __name__ == '__main__':

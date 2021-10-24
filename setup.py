@@ -42,6 +42,7 @@ setup(
     install_requires=[
         "PyYAML",
         "docker"
+        "pydantic"
     ],
     package_data={'crafting': ['minecraft_names.json', 'basic_config.yaml']},
     include_package_data=True,

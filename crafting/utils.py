@@ -1,8 +1,10 @@
 import getpass
 import json
+import os
 import pathlib
 from random import sample
-
+from tarfile import TarFile
+from builtins import open as bltn_open
 
 def get_minecraft_name() -> str:
     """
@@ -22,7 +24,7 @@ def get_minecraft_name() -> str:
     return result
 
 
-def create_name(container_name_config: dict) -> str:
+def create_name() -> str:
     """
     Creates full name for docker container from existing parts (see parts_of_name).
     Example:
@@ -36,6 +38,7 @@ def create_name(container_name_config: dict) -> str:
         'user': lambda: getpass.getuser(),
         'minecraft': lambda: get_minecraft_name(),
     }
+    container_name_config = {"delimiter": '.', "parts": ['user', 'minecraft']}
     for part in container_name_config['parts']:
         if part not in parts_of_name:
             names = ", ".join(parts_of_name.keys())
@@ -43,3 +46,61 @@ def create_name(container_name_config: dict) -> str:
         else:
             result.append(parts_of_name[part]())
     return container_name_config['delimiter'].join(result)
+
+
+class PatchedTarfile(TarFile):
+
+    def add(self, name, arcname=None, recursive=True, *, filter=None, ignore=None):
+        """Add the file `name' to the archive. `name' may be any type of file
+           (directory, fifo, symbolic link, etc.). If given, `arcname'
+           specifies an alternative name for the file in the archive.
+           Directories are added recursively by default. This can be avoided by
+           setting `recursive' to False. `filter' is a function
+           that expects a TarInfo object argument and returns the changed
+           TarInfo object, if it returns None the TarInfo object will be
+           excluded from the archive.
+        """
+        if ignore and os.path.abspath(name) in map(os.path.join, ignore):
+            print('ignore:', name)
+            return
+
+        self._check("awx")
+
+        if arcname is None:
+            arcname = name
+
+        # Skip if somebody tries to archive the archive...
+        if self.name is not None and os.path.abspath(name) == self.name:
+            self._dbg(2, "tarfile: Skipped %r" % name)
+            return
+
+        self._dbg(1, name)
+
+        # Create a TarInfo object from the file.
+        tarinfo = self.gettarinfo(name, arcname)
+
+        if tarinfo is None:
+            self._dbg(1, "tarfile: Unsupported type %r" % name)
+            return
+
+        # Change or exclude the TarInfo object.
+        if filter is not None:
+            tarinfo = filter(tarinfo)
+            if tarinfo is None:
+                self._dbg(2, "tarfile: Excluded %r" % name)
+                return
+
+        # Append the tar header and data to the archive.
+        if tarinfo.isreg():
+            with bltn_open(name, "rb") as f:
+                self.addfile(tarinfo, f)
+
+        elif tarinfo.isdir():
+            self.addfile(tarinfo)
+            if recursive:
+                for f in sorted(os.listdir(name)):
+                    self.add(os.path.join(name, f), os.path.join(arcname, f),
+                            recursive, filter=filter, ignore=ignore)
+
+        else:
+            self.addfile(tarinfo)
