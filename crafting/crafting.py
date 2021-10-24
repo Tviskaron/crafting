@@ -10,7 +10,7 @@ from docker import APIClient
 from docker.models.containers import Container
 from docker.types import Mount
 
-from config_validation import Cfg, Code, MountVolume
+from config_validation import Cfg, MountVolume
 from utils import PatchedTarfile
 
 
@@ -36,8 +36,6 @@ def run_container(cfg: Cfg = Cfg()) -> None:
         cfg.host_config.mounts.append(Mount(**mount.dict()))
 
     host_config = APIClient().create_host_config(**cfg.host_config.dict())
-    # print(host_config)
-    # exit(0)
     container_id = client.api.create_container(**cfg.container.dict(), host_config=host_config)
 
     container: Container = client.containers.get(container_id)
@@ -70,17 +68,13 @@ def main():
 
     args = parser.parse_args()
     if not pathlib.Path(args.CONFIG).exists():
+        print('Creating new config:', args.CONFIG)
         with open(args.CONFIG, "w") as f:
             yaml.dump(Cfg().dict(), f)
     else:
         with open(args.CONFIG, "r") as config_file:
             config = yaml.safe_load(config_file)
         run_container(cfg=Cfg(**config))
-    # elif args.mode == 'create':
-    #     if pathlib.Path(args.config).exists():
-    #         raise FileExistsError("already exists")
-    #     src = str(pathlib.Path(__file__).parents[0] / "basic_config.yaml")
-    #     shutil.copyfile(src=src, dst=args.config)
 
 
 if __name__ == '__main__':
