@@ -1,7 +1,6 @@
 import argparse
 import os
 import pathlib
-import shutil
 import tempfile
 
 import docker
@@ -11,12 +10,15 @@ from docker import APIClient
 from docker.models.containers import Container
 from docker.types import Mount
 
-from .config_validation import Cfg, Code, MountVolume
-from .utils import PatchedTarfile
+from config_validation import Cfg, Code, MountVolume
+from utils import PatchedTarfile
 
 
 def run_container(cfg: Cfg = Cfg()) -> None:
     client = docker.from_env()
+
+    if cfg.container.command == 'bash' and cfg.container.stdin_open is None:
+        cfg.container.stdin_open = True
 
     for image in client.images.list():
         if cfg.container.image in image.tags:
@@ -24,7 +26,7 @@ def run_container(cfg: Cfg = Cfg()) -> None:
     else:
         print('Pulling image:', cfg.container.image)
         client.images.pull(cfg.container.image)
-    if not cfg.container.working_dir:
+    if cfg.code.folder and not cfg.container.working_dir:
         cfg.container.working_dir = str(pathlib.Path("/") / pathlib.Path(cfg.code.folder).absolute().name)
 
     for path in cfg.code.volume_attach:
@@ -34,6 +36,8 @@ def run_container(cfg: Cfg = Cfg()) -> None:
         cfg.host_config.mounts.append(Mount(**mount.dict()))
 
     host_config = APIClient().create_host_config(**cfg.host_config.dict())
+    # print(host_config)
+    # exit(0)
     container_id = client.api.create_container(**cfg.container.dict(), host_config=host_config)
 
     container: Container = client.containers.get(container_id)
@@ -42,7 +46,6 @@ def run_container(cfg: Cfg = Cfg()) -> None:
     if cfg.code.folder:
         path_to_code = pathlib.Path(cfg.code.folder)
         with tempfile.TemporaryFile() as temp:
-            # file = tarfile.open(fileobj=temp, mode="w")
             path = PatchedTarfile.open(fileobj=temp, mode="w")
 
             ignore = list(map(os.path.abspath, cfg.code.volume_attach))
@@ -53,19 +56,24 @@ def run_container(cfg: Cfg = Cfg()) -> None:
                 container.put_archive(data=path, path=cfg.container.working_dir)
 
     container.start()
+
     if cfg.container.command == 'bash':
-        os.system(f"docker attach  {container.id}")
+        os.system(f"docker attach  {container.id} ")
     else:
         os.system("docker logs -f " + container.name)
 
 
 def main():
-    parser = argparse.ArgumentParser(description=""" Craft tool to run your experiments with docker """)
-    parser.add_argument('mode', type=str, help='path to yaml config', choices=['run', 'create'])
-    parser.add_argument('config', type=str, help='path to yaml config')
+    parser = argparse.ArgumentParser(description="""Crafting a tool to run ML/RL experiments in docker containers""",
+                                     usage="crafting <CONFIG>.yaml\n(if CONFIG doesn't exist it will be created)")
+    parser.add_argument('CONFIG', type=str, help='path to yaml config', default='here.yaml', )
+
     args = parser.parse_args()
-    if args.mode == 'run':
-        with open(args.config, "r") as config_file:
+    if not pathlib.Path(args.CONFIG).exists():
+        with open(args.CONFIG, "w") as f:
+            yaml.dump(Cfg().dict(), f)
+    else:
+        with open(args.CONFIG, "r") as config_file:
             config = yaml.safe_load(config_file)
         run_container(cfg=Cfg(**config))
     # elif args.mode == 'create':

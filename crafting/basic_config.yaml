@@ -1,6 +1,6 @@
 code:
   folder: '.'
 container:
-  command: python3 main.py
+  command: bash
   image: forger-v2
   tty: true

@@ -10,10 +10,13 @@ class Container(BaseModel):
     tty: bool = True
     name: str = Field(default_factory=create_name)
     working_dir: str = None
+    detach: bool = None
+    stdin_open: bool = None
 
 
 class HostConfig(BaseModel):
     network_mode: str = 'host'
+    runtime: str = None
     mounts: list = []
 
 
