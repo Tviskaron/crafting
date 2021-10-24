@@ -11,7 +11,6 @@ from docker import APIClient
 from docker.models.containers import Container
 from docker.types import Mount
 
-import config_validation
 from .config_validation import Cfg, Code, MountVolume
 from .utils import PatchedTarfile
 
