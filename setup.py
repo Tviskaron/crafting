@@ -41,7 +41,7 @@ setup(
     url='https://github.com/Tviskaron/crafting',
     install_requires=[
         "PyYAML",
-        "docker"
+        "docker",
         "pydantic"
     ],
     package_data={'crafting': ['minecraft_names.json', 'basic_config.yaml']},
