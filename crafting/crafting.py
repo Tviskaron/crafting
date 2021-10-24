@@ -12,8 +12,8 @@ from docker.models.containers import Container
 from docker.types import Mount
 
 import config_validation
-from config_validation import Cfg, Code, MountVolume
-from utils import PatchedTarfile
+from .config_validation import Cfg, Code, MountVolume
+from .utils import PatchedTarfile
 
 
 def run_container(cfg: Cfg = Cfg()) -> None:
