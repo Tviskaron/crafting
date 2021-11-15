@@ -48,6 +48,6 @@ setup(
     include_package_data=True,
     package_dir={'': './'},
     packages=find_packages(where='./', include='crafting*'),
-        entry_points={"console_scripts": ["crafting=crafting.crafting:main"]},
+    entry_points={"console_scripts": ["crafting=crafting.main:main", "craft=crafting.main:main"], },
     python_requires='>=3.6',
 )

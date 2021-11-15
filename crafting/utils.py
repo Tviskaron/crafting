@@ -6,6 +6,7 @@ from random import sample
 from tarfile import TarFile
 from builtins import open as bltn_open
 
+
 def get_minecraft_name() -> str:
     """
     Creates an pair of adjective and noun from minecraft domain in CamelCase format.
@@ -100,7 +101,7 @@ class PatchedTarfile(TarFile):
             if recursive:
                 for f in sorted(os.listdir(name)):
                     self.add(os.path.join(name, f), os.path.join(arcname, f),
-                            recursive, filter=filter, ignore=ignore)
+                             recursive, filter=filter, ignore=ignore)
 
         else:
             self.addfile(tarinfo)

@@ -10,8 +10,8 @@ from docker import APIClient
 from docker.models.containers import Container
 from docker.types import Mount
 
-from config_validation import Cfg, MountVolume
-from utils import PatchedTarfile
+from .config_validation import Cfg, MountVolume
+from .utils import PatchedTarfile
 
 
 def run_container(cfg: Cfg = Cfg()) -> None:

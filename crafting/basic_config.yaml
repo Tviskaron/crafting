@@ -2,5 +2,5 @@ code:
   folder: '.'
 container:
   command: bash
-  image: forger-v2
+  image: python:3.9-slim-buster
   tty: true

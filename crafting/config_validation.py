@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field, Extra
 from typing import List
 
-from utils import create_name
+from .utils import create_name
 
 
 class Container(BaseModel, extra=Extra.allow):
@@ -16,7 +16,6 @@ class Container(BaseModel, extra=Extra.allow):
 
 class HostConfig(BaseModel, extra=Extra.allow):
     network_mode: str = 'host'
-    # runtime: str = None
     mounts: list = []
 
 
@@ -25,7 +24,7 @@ class Code(BaseModel, extra=Extra.forbid):
     volume_attach: List[str] = []
 
 
-class Cfg(BaseModel, extra=Extra.forbid):
+class Cfg(BaseModel, extra=Extra.ignore):
     container: Container = Container()
     host_config: HostConfig = HostConfig()
     code: Code = Code()
