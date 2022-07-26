@@ -1,5 +1,6 @@
 code:
   folder: '.'
+  ignore: [".git"]
 container:
   command: bash
   image: python:3.9-slim-buster

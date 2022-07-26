@@ -46,7 +46,7 @@ def run_container(cfg: Cfg = Cfg()) -> None:
         with tempfile.TemporaryFile() as temp:
             path = PatchedTarfile.open(fileobj=temp, mode="w")
 
-            ignore = list(map(os.path.abspath, cfg.code.volume_attach))
+            ignore = list(map(os.path.abspath, cfg.code.volume_attach)) + list(map(os.path.abspath, cfg.code.ignore))
             path.add(str(path_to_code), arcname=path_to_code.name + "/", recursive=True, ignore=ignore)
             path.close()
             temp.seek(0)

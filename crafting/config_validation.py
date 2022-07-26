@@ -22,6 +22,7 @@ class HostConfig(BaseModel, extra=Extra.allow):
 class Code(BaseModel, extra=Extra.forbid):
     folder: str = None
     volume_attach: List[str] = []
+    ignore: List[str] = []
 
 
 class Cfg(BaseModel, extra=Extra.ignore):
