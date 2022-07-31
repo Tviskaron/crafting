@@ -12,6 +12,7 @@ class Container(BaseModel, extra=Extra.allow):
     working_dir: str = None
     detach: bool = None
     stdin_open: bool = None
+    environment: List[str] = []
 
 
 class HostConfig(BaseModel, extra=Extra.allow):
@@ -21,8 +22,10 @@ class HostConfig(BaseModel, extra=Extra.allow):
 
 class Code(BaseModel, extra=Extra.forbid):
     folder: str = None
-    volume_attach: List[str] = []
+    volumes: List[str] = []
     ignore: List[str] = []
+    forward_environment_keys: List[str] = []
+    connect_to_logs: bool = True
 
 
 class Cfg(BaseModel, extra=Extra.ignore):

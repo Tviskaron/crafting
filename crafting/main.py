@@ -14,7 +14,7 @@ from .config_validation import Cfg, MountVolume
 from .utils import PatchedTarfile
 
 
-def run_container(cfg: Cfg = Cfg()) -> None:
+def run_container(cfg: Cfg = Cfg()) -> Container:
     client = docker.from_env()
 
     if cfg.container.command == 'bash' and cfg.container.stdin_open is None:
@@ -29,7 +29,12 @@ def run_container(cfg: Cfg = Cfg()) -> None:
     if cfg.code.folder and not cfg.container.working_dir:
         cfg.container.working_dir = str(pathlib.Path("/") / pathlib.Path(cfg.code.folder).absolute().name)
 
-    for path in cfg.code.volume_attach:
+    # forward environment variables into container
+    for key in cfg.code.forward_environment_keys:
+        if key in os.environ:
+            cfg.container.environment.append(f'{key}={os.environ[key]}')
+
+    for path in cfg.code.volumes:
         target = pathlib.Path(cfg.container.working_dir) / path
         source = pathlib.Path(path).absolute()
         mount = MountVolume(target=str(target), source=str(source), read_only=True, type='bind')
@@ -46,7 +51,7 @@ def run_container(cfg: Cfg = Cfg()) -> None:
         with tempfile.TemporaryFile() as temp:
             path = PatchedTarfile.open(fileobj=temp, mode="w")
 
-            ignore = list(map(os.path.abspath, cfg.code.volume_attach)) + list(map(os.path.abspath, cfg.code.ignore))
+            ignore = list(map(os.path.abspath, cfg.code.volumes)) + list(map(os.path.abspath, cfg.code.ignore))
             path.add(str(path_to_code), arcname=path_to_code.name + "/", recursive=True, ignore=ignore)
             path.close()
             temp.seek(0)
@@ -58,7 +63,10 @@ def run_container(cfg: Cfg = Cfg()) -> None:
     if cfg.container.command == 'bash':
         os.system(f"docker attach  {container.id} ")
     else:
-        os.system("docker logs -f " + container.name)
+        if cfg.code.connect_to_logs:
+            os.system("docker logs -f " + container.name)
+
+    return container
 
 
 def main():
