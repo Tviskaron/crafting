@@ -23,21 +23,25 @@ def add_files_from_code_folder(container: Container, cfg: Cfg):
     path_to_code = pathlib.Path(cfg.code.folder)
 
     for path in path_to_code.iterdir():
-        file_size_warning_mb = 100
-        file_size_error_mb = 1000
+        size_warning_error = 100
+        size_error = 1000
         mb_to_bytes = 1024 * 1024
 
         path.is_file()
-        start_message_text = f'{"Folder" if path.is_dir() else "File"} {path} is exceeding {file_size_warning_mb} MB. '
-        end_message_text = f'Consider adding it as volume to config:'
+        size = get_size_by_path(path, max_size=size_error)
 
-        if get_size_by_path(path, max_size=file_size_error_mb) > file_size_error_mb:
+        message_text = f"""{"Folder" if path.is_dir() else "File"} {path} is too big ({size // mb_to_bytes}MB).
+                          Consider adding it as volume:
+                          code:
+                            volumes: [{path}]
+                        """
+
+        if size >= size_error * mb_to_bytes:
             sys.tracebacklimit = 0
-            raise ValueError(start_message_text + f"{file_size_error_mb}MB" + end_message_text + f'\n    volumes: [{path}]')
+            raise ValueError(message_text)
 
-        if get_size_by_path(path, max_size=file_size_warning_mb * mb_to_bytes) > mb_to_bytes * file_size_warning_mb:
-            warnings.warn(start_message_text + f"{file_size_warning_mb}MB" + end_message_text + f'\n    volumes: [{path}]')
-
+        if size >= size_warning_error * mb_to_bytes:
+            warnings.warn(message_text)
 
     with tempfile.TemporaryFile() as temp:
         path = PatchedTarfile.open(fileobj=temp, mode="w")
