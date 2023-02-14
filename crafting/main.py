@@ -1,7 +1,9 @@
 import argparse
 import os
 import pathlib
+import sys
 import tempfile
+import warnings
 
 import docker
 import yaml
@@ -11,7 +13,56 @@ from docker.models.containers import Container
 from docker.types import Mount
 
 from .config_validation import Cfg, MountVolume
-from .utils import PatchedTarfile
+from .utils import PatchedTarfile, get_size_by_path
+
+
+def check_folder_sizes(path, size_warning_error=128, size_error=512):
+    total_size = 0
+    for path in path.iterdir():
+        mb_to_bytes = 1024 * 1024
+
+        path.is_file()
+        size = get_size_by_path(path, max_size=size_error * mb_to_bytes)
+
+        message_text = "\n".join(
+            [("Folder" if path.is_dir() else "File") + f" {path} is too big (>{size // mb_to_bytes}MB).",
+             f"Consider adding it to volumes or ignore it in code settings. ",
+             f"E.g. volumes: ['{path}'] or ignore: ['{path}']",
+             ])
+
+        if total_size > size_error * mb_to_bytes:
+            sys.tracebacklimit = 0
+            raise ValueError(f"Total size of code folder is too big (<{size // mb_to_bytes}MB).")
+
+        if size >= size_error * mb_to_bytes:
+            sys.tracebacklimit = 0
+            raise ValueError(message_text)
+        else:
+            if size >= size_warning_error * mb_to_bytes:
+                warnings.warn(message_text)
+        total_size += size
+
+
+def add_files_from_code_folder(container: Container, cfg: Cfg):
+    # if code folder is not specified, do nothing
+    if cfg.code.folder is None:
+        return
+
+    path_to_code = pathlib.Path(cfg.code.folder)
+
+    # make sure that code folder is not too big
+    check_folder_sizes(path_to_code)
+
+    # add files from code folder to container via tarfile
+    with tempfile.TemporaryFile() as temp:
+        path = PatchedTarfile.open(fileobj=temp, mode="w")
+
+        ignore = list(map(os.path.abspath, cfg.code.volumes)) + list(map(os.path.abspath, cfg.code.ignore))
+        path.add(str(path_to_code), arcname=path_to_code.name + "/", recursive=True, ignore=ignore)
+        path.close()
+        temp.seek(0)
+        with temp as path:
+            container.put_archive(data=path, path=cfg.container.working_dir)
 
 
 def run_container(cfg: Cfg = Cfg()) -> Container:
@@ -46,17 +97,8 @@ def run_container(cfg: Cfg = Cfg()) -> Container:
     container: Container = client.containers.get(container_id)
 
     cfg.update_forward_refs()
-    if cfg.code.folder:
-        path_to_code = pathlib.Path(cfg.code.folder)
-        with tempfile.TemporaryFile() as temp:
-            path = PatchedTarfile.open(fileobj=temp, mode="w")
 
-            ignore = list(map(os.path.abspath, cfg.code.volumes)) + list(map(os.path.abspath, cfg.code.ignore))
-            path.add(str(path_to_code), arcname=path_to_code.name + "/", recursive=True, ignore=ignore)
-            path.close()
-            temp.seek(0)
-            with temp as path:
-                container.put_archive(data=path, path=cfg.container.working_dir)
+    add_files_from_code_folder(container, cfg)
 
     container.start()
 
