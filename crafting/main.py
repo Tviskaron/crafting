@@ -13,7 +13,7 @@ from docker.models.containers import Container
 from docker.types import Mount
 
 from .config_validation import Cfg, MountVolume
-from .utils import PatchedTarfile, get_folder_size
+from .utils import PatchedTarfile, get_size_by_path
 
 
 def add_files_from_code_folder(container: Container, cfg: Cfg):
@@ -27,16 +27,16 @@ def add_files_from_code_folder(container: Container, cfg: Cfg):
         file_size_error_mb = 1000
         mb_to_bytes = 1024 * 1024
 
-        message_text = f'File/folder {path} is exceeding {file_size_warning_mb} MB. '\
-                       f'Consider adding it as volume to run.yaml file:'
+        path.is_file()
+        start_message_text = f'{"Folder" if path.is_dir() else "File"} {path} is exceeding {file_size_warning_mb} MB. '
+        end_message_text = f'Consider adding it as volume to config:'
 
-
-        if get_folder_size(path, max_size=file_size_warning_mb) > file_size_error_mb:
+        if get_size_by_path(path, max_size=file_size_warning_mb) > file_size_error_mb:
             sys.tracebacklimit = 0
-            raise ValueError(message_text + f'\n    volumes: [{path}]')
+            raise ValueError(start_message_text + f"{file_size_error_mb}MB" + end_message_text + f'\n    volumes: [{path}]')
 
-        if get_folder_size(path, max_size=file_size_warning_mb * mb_to_bytes) > mb_to_bytes * file_size_warning_mb:
-            warnings.warn(message_text + f'\n    volumes: [{path}]')
+        if get_size_by_path(path, max_size=file_size_warning_mb * mb_to_bytes) > mb_to_bytes * file_size_warning_mb:
+            warnings.warn(start_message_text + f"{file_size_warning_mb}MB" + end_message_text + f'\n    volumes: [{path}]')
 
 
     with tempfile.TemporaryFile() as temp:
