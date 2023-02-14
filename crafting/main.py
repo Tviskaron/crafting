@@ -1,6 +1,7 @@
 import argparse
 import os
 import pathlib
+import sys
 import tempfile
 import warnings
 
@@ -31,7 +32,8 @@ def add_files_from_code_folder(container: Container, cfg: Cfg):
 
 
         if get_folder_size(path, max_size=file_size_warning_mb) > file_size_error_mb:
-            raise ValueError(message_text + f'\n    volumes: [{path}]') from None
+            sys.tracebacklimit = 0
+            raise ValueError(message_text + f'\n    volumes: [{path}]')
 
         if get_folder_size(path, max_size=file_size_warning_mb * mb_to_bytes) > mb_to_bytes * file_size_warning_mb:
             warnings.warn(message_text + f'\n    volumes: [{path}]')
