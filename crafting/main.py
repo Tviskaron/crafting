@@ -28,7 +28,7 @@ def add_files_from_code_folder(container: Container, cfg: Cfg):
         mb_to_bytes = 1024 * 1024
 
         path.is_file()
-        size = get_size_by_path(path, max_size=size_error)
+        size = get_size_by_path(path, max_size=size_error * mb_to_bytes)
 
         message_text = f"""{"Folder" if path.is_dir() else "File"} {path} is too big ({size // mb_to_bytes}MB).
                           Consider adding it as volume:
