@@ -26,7 +26,7 @@ def check_folder_sizes(path, size_warning_error=128, size_error=512):
 
         message_text = "\n".join(
             [("Folder" if path.is_dir() else "File") + f" {path} is too big (>{size // mb_to_bytes}MB).",
-             f"Consider adding it to volumes or ignore it in code settings. "
+             f"Consider adding it to volumes or ignore it in code settings. ",
              f"E.g. volumes: ['{path}'] or ignore: ['{path}']",
              ])
 
