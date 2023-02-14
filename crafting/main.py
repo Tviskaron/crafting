@@ -29,8 +29,10 @@ def add_files_from_code_folder(container: Container, cfg: Cfg):
         message_text = f'File/folder {path} is exceeding {file_size_warning_mb} MB. '\
                        f'Consider adding it as volume to run.yaml file:'
 
+
         if get_folder_size(path, max_size=file_size_warning_mb) > file_size_error_mb:
-            raise ValueError(message_text + f'\n    volumes: [{path}]')
+            # raise error without stack trace
+            raise Exception(message_text + f'\n    volumes: [{path}]')
 
         if get_folder_size(path, max_size=file_size_warning_mb * mb_to_bytes) > mb_to_bytes * file_size_warning_mb:
             warnings.warn(message_text + f'\n    volumes: [{path}]')
