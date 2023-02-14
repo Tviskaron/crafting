@@ -30,18 +30,18 @@ def add_files_from_code_folder(container: Container, cfg: Cfg):
         path.is_file()
         size = get_size_by_path(path, max_size=size_error * mb_to_bytes)
 
-        message_text = f"""{"Folder" if path.is_dir() else "File"} {path} is too big ({size // mb_to_bytes}MB).
-                          Consider adding it as volume:
-                          code:
-                            volumes: [{path}]
-                        """
+        message_text = "\n".join(
+            [("Folder" if path.is_dir() else "File") + f"{path} is too big ({size // mb_to_bytes}MB).",
+             f"Consider adding it to volumes or ignore in code settings. "
+             f"E.g. volumes: ['{path}'] or ignore: ['{path}']",
+             ])
 
         if size >= size_error * mb_to_bytes:
-            sys.tracebacklimit = 0
+            sys.tracebacklimit = 1
             raise ValueError(message_text)
-
-        if size >= size_warning_error * mb_to_bytes:
-            warnings.warn(message_text)
+        else:
+            if size >= size_warning_error * mb_to_bytes:
+                warnings.warn(message_text)
 
     with tempfile.TemporaryFile() as temp:
         path = PatchedTarfile.open(fileobj=temp, mode="w")
