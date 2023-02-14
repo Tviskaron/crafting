@@ -2,6 +2,7 @@ import argparse
 import os
 import pathlib
 import tempfile
+import warnings
 
 import docker
 import yaml
@@ -11,7 +12,39 @@ from docker.models.containers import Container
 from docker.types import Mount
 
 from .config_validation import Cfg, MountVolume
-from .utils import PatchedTarfile
+from .utils import PatchedTarfile, get_folder_size
+
+
+def add_files_from_code_folder(container: Container, cfg: Cfg):
+    if cfg.code.folder is None:
+        return
+
+    path_to_code = pathlib.Path(cfg.code.folder)
+
+    for path in path_to_code.iterdir():
+        file_size_warning_mb = 100
+        file_size_error_mb = 1000
+        mb_to_bytes = 1024 * 1024
+
+        message_text = f'File/folder {path} is exceeding {file_size_warning_mb} MB. '\
+                       f'Consider adding it as volume to run.yaml file:'
+
+        if get_folder_size(path, max_size=file_size_warning_mb) > file_size_error_mb:
+            raise ValueError(message_text + f'\n    volumes: [{path}]')
+
+        if get_folder_size(path, max_size=file_size_warning_mb * mb_to_bytes) > mb_to_bytes * file_size_warning_mb:
+            warnings.warn(message_text + f'\n    volumes: [{path}]')
+
+
+    with tempfile.TemporaryFile() as temp:
+        path = PatchedTarfile.open(fileobj=temp, mode="w")
+
+        ignore = list(map(os.path.abspath, cfg.code.volumes)) + list(map(os.path.abspath, cfg.code.ignore))
+        path.add(str(path_to_code), arcname=path_to_code.name + "/", recursive=True, ignore=ignore)
+        path.close()
+        temp.seek(0)
+        with temp as path:
+            container.put_archive(data=path, path=cfg.container.working_dir)
 
 
 def run_container(cfg: Cfg = Cfg()) -> Container:
@@ -46,17 +79,8 @@ def run_container(cfg: Cfg = Cfg()) -> Container:
     container: Container = client.containers.get(container_id)
 
     cfg.update_forward_refs()
-    if cfg.code.folder:
-        path_to_code = pathlib.Path(cfg.code.folder)
-        with tempfile.TemporaryFile() as temp:
-            path = PatchedTarfile.open(fileobj=temp, mode="w")
 
-            ignore = list(map(os.path.abspath, cfg.code.volumes)) + list(map(os.path.abspath, cfg.code.ignore))
-            path.add(str(path_to_code), arcname=path_to_code.name + "/", recursive=True, ignore=ignore)
-            path.close()
-            temp.seek(0)
-            with temp as path:
-                container.put_archive(data=path, path=cfg.container.working_dir)
+    add_files_from_code_folder(container, cfg)
 
     container.start()
 

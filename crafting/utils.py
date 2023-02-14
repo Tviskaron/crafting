@@ -105,3 +105,12 @@ class PatchedTarfile(TarFile):
 
         else:
             self.addfile(tarinfo)
+
+def get_folder_size(path, max_size=None):
+    result = 0
+    for f in path.glob('**/*'):
+        if f.is_file():
+            result += f.stat().st_size
+            if result > max_size:
+                return result
+    return result
