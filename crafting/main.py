@@ -16,13 +16,13 @@ from .config_validation import Cfg, MountVolume
 from .utils import PatchedTarfile, get_size_by_path
 
 
-def check_folder_sizes(path, size_warning_error=128, size_error=512):
+def check_folder_sizes(path, ignore, size_warning_error=128, size_error=512):
     total_size = 0
     for path in path.iterdir():
         mb_to_bytes = 1024 * 1024
 
         path.is_file()
-        size = get_size_by_path(path, max_size=size_error * mb_to_bytes)
+        size = get_size_by_path(path, ignore=ignore, max_size=size_error * mb_to_bytes)
 
         message_text = "\n".join(
             [("Folder" if path.is_dir() else "File") + f" {path} is too big (>{size // mb_to_bytes}MB).",
@@ -50,14 +50,14 @@ def add_files_from_code_folder(container: Container, cfg: Cfg):
 
     path_to_code = pathlib.Path(cfg.code.folder)
 
+    ignore = list(map(os.path.abspath, cfg.code.volumes)) + list(map(os.path.abspath, cfg.code.ignore))
     # make sure that code folder is not too big
-    check_folder_sizes(path_to_code)
+    check_folder_sizes(path_to_code, ignore)
 
     # add files from code folder to container via tarfile
     with tempfile.TemporaryFile() as temp:
         path = PatchedTarfile.open(fileobj=temp, mode="w")
 
-        ignore = list(map(os.path.abspath, cfg.code.volumes)) + list(map(os.path.abspath, cfg.code.ignore))
         path.add(str(path_to_code), arcname=path_to_code.name + "/", recursive=True, ignore=ignore)
         path.close()
         temp.seek(0)
