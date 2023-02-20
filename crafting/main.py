@@ -21,7 +21,6 @@ def check_folder_sizes(path, ignore, size_warning_error=128, size_error=512):
     for path in path.iterdir():
         mb_to_bytes = 1024 * 1024
 
-        path.is_file()
         size = get_size_by_path(path, ignore=ignore, max_size=size_error * mb_to_bytes)
 
         message_text = "\n".join(

@@ -62,7 +62,7 @@ class PatchedTarfile(TarFile):
            excluded from the archive.
         """
         if ignore and os.path.abspath(name) in map(os.path.join, ignore):
-            print('ignore:', name)
+            print('ignoring:', name)
             return
 
         self._check("awx")
@@ -110,11 +110,13 @@ def get_size_by_path(path, ignore=None, max_size=None):
     if ignore is None:
         ignore = []
     result = 0
-    for f in path.glob('**/*'):
-        if f in ignore:
-            continue
-        if f.is_file():
-            result += f.stat().st_size
-            if result > max_size:
-                return result
+    if os.path.abspath(path) in ignore:
+        return 0
+    if path.is_file():
+        return path.stat().st_size
+    for f in path.iterdir():
+        result += get_size_by_path(f, ignore, max_size - result if max_size else None)
+        if max_size is not None and result > max_size:
+            return result
     return result
+
