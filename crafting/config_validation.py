@@ -13,7 +13,7 @@ class Container(BaseModel, extra=Extra.allow):
     detach: bool = None
     stdin_open: bool = None
     environment: List[str] = []
-
+    user: str = None
 
 class HostConfig(BaseModel, extra=Extra.allow):
     network_mode: str = 'host'
@@ -23,10 +23,11 @@ class HostConfig(BaseModel, extra=Extra.allow):
 class Code(BaseModel, extra=Extra.forbid):
     folder: str = None
     volumes: List[str] = []
+    rw_volumes: List[str] = []
     ignore: List[str] = []
     forward_environment_keys: List[str] = []
     connect_to_logs: bool = True
-
+    set_gid_uid: bool = True
 
 class Cfg(BaseModel, extra=Extra.ignore):
     container: Container = Container()

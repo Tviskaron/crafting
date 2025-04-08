@@ -84,12 +84,22 @@ def run_container(cfg: Cfg = Cfg()) -> Container:
         if key in os.environ:
             cfg.container.environment.append(f'{key}={os.environ[key]}')
 
-    for path in cfg.code.volumes:
+    for path in cfg.code.volumes + cfg.code.rw_volumes:
+        is_read_only = path in cfg.code.volumes
         target = pathlib.Path(cfg.container.working_dir) / path
         source = pathlib.Path(path).absolute()
-        mount = MountVolume(target=str(target), source=str(source), read_only=True, type='bind')
+        mount = MountVolume(target=str(target), source=str(source), read_only=is_read_only, type='bind')
         cfg.host_config.mounts.append(Mount(**mount.dict()))
 
+    if cfg.code.set_gid_uid:
+        image = client.images.get(cfg.container.image)
+        default_user = image.attrs.get('Config', {}).get('User')
+        if not default_user:
+            default_user = 'root'
+        uid = os.getuid()
+        gid = os.getgid()
+
+        cfg.container.user = f"{default_user}:{uid}:{gid}"
     host_config = APIClient().create_host_config(**cfg.host_config.dict())
     container_id = client.api.create_container(**cfg.container.dict(), host_config=host_config)
 
